@@ -29,7 +29,7 @@ var MessageManager = {
   getMessages: function mm_getMessages(callback, filter, invert) {
     // XXX Bug 712809
     // Until there is a database for mozSms, use a fake GetMessages
-    if (true) {
+    if (false) {
       GetMessagesHack(callback, filter, invert);
       return;
     }
@@ -305,7 +305,7 @@ var ConversationView = {
   showConversation: function cv_showConversation(num) {
     var view = this.view;
     var bodyclassList = document.body.classList;
-    var filter = ('SmsFilter' in window) ? new SmsFilter() : {};
+    var filter = new MozSmsFilter();
     filter.number = this.filter = num;
 
     if (!num) {
