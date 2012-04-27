@@ -17,6 +17,7 @@
     </script>
     <script type="text/javascript" src="js/settings.js"></script>
     <script type="text/javascript" src="js/wifi.js"></script>
+    <script type="text/javascript" src="js/bluetooth.js"></script>
   </head>
   <body class="hidden">
     <header>
@@ -28,6 +29,11 @@
         <li>
           <a href="#wifi">
             <span data-l10n-id="wifi">Wi-Fi</span>
+          </a>
+        </li>        
+        <li>
+          <a href="#bluetooth">
+            <span data-l10n-id="bluetooth">Bluetooth</span>
           </a>
         </li>
         <li>
@@ -106,6 +112,40 @@
       <h2 data-l10n-id="wifiNetworks"> Wi-Fi networks </h2>
       <ul id="wifi-networks">
         <!-- filled by wifi.js -->
+      </ul>
+    </div>
+
+    <!-- Bluetooth -->
+    <div id="bluetooth" class="view" data-title="Bluetooth">
+       <ul>
+        <li id="bluetooth-status">
+          <span data-l10n-id="bluetooth">Bluetooth</span>
+          <small data-l10n-id="enabled">disabled</small>
+          <label>
+            <input type="checkbox" />
+            <span></span>
+          </label>
+        </li>
+      </ul>
+      <ul>
+        <li id="bluetooth-result">
+          <span data-l10n-id="title">Ready</span>
+          <small data-l10n-id="description"></small>
+        </li>
+      </ul>
+      <ul>
+        <li id="bluetooth-discovery">
+          <span data-l10n-id="title">Discover Devices</span>
+          <small data-l10n-id="description">Ready</small>
+          <label>
+            <input type="checkbox" />
+            <span></span>
+          </label>
+        </li>
+      </ul>
+      <h2 data-l10n-id="bluetoothDevices"> Bluetooth Devices </h2>
+      <ul id="bluetooth-devices">
+        <!-- filled by bluetooth.js -->
       </ul>
     </div>
 
