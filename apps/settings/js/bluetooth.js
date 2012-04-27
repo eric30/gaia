@@ -34,10 +34,10 @@ window.addEventListener('DOMContentLoaded', function discoverDevices(evt) {
   };
 
   document.querySelector('#bluetooth-discovery input').onchange = function() {
-    gDiscoveredDevices.clear();
-    gDeviceList.clear();
+    if (this.checked) {    
+      gDiscoveredDevices.length = 0;
+      clearList();
 
-    if (this.checked) {
       gBluetoothAdapter.startDiscovery();
     } else {
       gBluetoothAdapter.stopDiscovery();
@@ -91,15 +91,30 @@ window.addEventListener('DOMContentLoaded', function discoverDevices(evt) {
     li.onclick = function() {
       var device = gDiscoveredDevices[index];
 
-      gBluetoothResultLabel.textContent = "Connecting";
+      if (device.connected) {
+        gBluetoothResultLabel.textContent = "Disconnecting";
 
-      if (device.connect(2)) {
-        gBluetoothResultLabel.textContent = "Connected";
+        if (device.disconnect()) {
+          gBluetoothResultLabel.textContent = "Disconnected";
+        } else {
+          gBluetoothResultLabel.textContent = "Disconnect Failed";
+        }
       } else {
-        gBluetoothResultLabel.textContent = "Connect Failed";
+        gBluetoothResultLabel.textContent = "Connecting";
+
+        if (device.connect(2)) {
+          gBluetoothResultLabel.textContent = "Connected";
+        } else {
+          gBluetoothResultLabel.textContent = "Connect Failed";
+        }
       }
     }
 
     return li;
+  };
+
+  function clearList() {
+    while (gDeviceList.hasChildNodes())
+      gDeviceList.removeChild(gDeviceList.lastChild);
   };
 });
