@@ -128,12 +128,6 @@
         </li>
       </ul>
       <ul>
-        <li id="bluetooth-result">
-          <span data-l10n-id="title">Ready</span>
-          <small data-l10n-id="description"></small>
-        </li>
-      </ul>
-      <ul>
         <li id="bluetooth-discovery">
           <span data-l10n-id="title">Discover Devices</span>
           <small data-l10n-id="description">Ready</small>
@@ -142,8 +136,13 @@
             <span></span>
           </label>
         </li>
+      </ul>      
+      <h2 data-l10n-id="bluetooth-connected-devices"> Connected Devices </h2>
+      <ul id="bluetooth-connected-devices">
+        <!-- filled by bluetooth.js -->
       </ul>
-      <h2 data-l10n-id="bluetoothDevices"> Bluetooth Devices </h2>
+
+      <h2 data-l10n-id="bluetoothDevices"> Discovered Devices </h2>
       <ul id="bluetooth-devices">
         <!-- filled by bluetooth.js -->
       </ul>
