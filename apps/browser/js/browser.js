@@ -3,65 +3,31 @@
 
 var Browser = {
 
-  get backButton() {
-    delete this.backButton;
-    return this.backButton =
-      document.getElementById('back-button');
-  },
-
-  get addressbar() {
-    delete this.addressbar;
-    return this.addressbar = document.getElementById('address-bar');
-  },
-
-  get urlbar() {
-    delete this.urlbar;
-    return this.urlbar = document.getElementById('url-bar');
-  },
-
-  /* Browser content */
-  get content() {
-    delete this.content;
-    return this.content = document.getElementById('browser-content');
-  },
-
-  get menu() {
-    delete this.menu;
-    return this.menu = document.getElementById('browser-menu');
-  },
-
-  get shade() {
-    delete this.shade;
-    return this.shade = document.getElementById('shade');
-  },
-
-  get menuButton() {
-    delete this.menuButton;
-    return this.menuButton = document.getElementById('menu-button');
-  },
-
-  get refreshButton() {
-    delete this.refreshButton;
-    return this.refreshButton = document.getElementById('refresh');
-  },
-
-  get forwardButton() {
-    delete this.forwardButton;
-    return this.forwardButton = document.getElementById('forward-button');
-  },
-
   currentTitle: '',
-
   currentUrl: '',
+  GO: 0,
+  REFRESH: 1,
+  urlButtonMode: this.GO,
 
   init: function browser_init() {
+    // Open global history database
+    GlobalHistory.db.open();
+
+    // Assign UI elements to variables
+    this.toolbarStart = document.getElementById('toolbar-start');
+    this.urlBar = document.getElementById('url-bar');
+    this.urlInput = document.getElementById('url-input');
+    this.urlButton = document.getElementById('url-button');
+    this.content = document.getElementById('browser-content');
+    this.backButton = document.getElementById('back-button');
+    this.forwardButton = document.getElementById('forward-button');
+
+    // Add event listeners
     this.backButton.addEventListener('click', this.goBack.bind(this));
-    this.menuButton.addEventListener('click', this.toggleMenu.bind(this));
-    this.refreshButton.addEventListener('click', this.refresh.bind(this));
+    this.urlButton.addEventListener('click', this.go.bind(this));
     this.forwardButton.addEventListener('click', this.goForward.bind(this));
-    this.shade.addEventListener('click', this.toggleMenu.bind(this));
-    this.urlbar.addEventListener('focus', this.urlFocus.bind(this));
-    this.urlbar.addEventListener('blur', this.urlBlur.bind(this));
+    this.urlInput.addEventListener('focus', this.urlFocus.bind(this));
+    this.urlInput.addEventListener('blur', this.urlBlur.bind(this));
     window.addEventListener('submit', this);
     window.addEventListener('keyup', this, true);
 
@@ -71,31 +37,23 @@ var Browser = {
       this.content.addEventListener('mozbrowser' + type, this);
     }).bind(this));
 
-    var url = this.urlbar.value;
+    // Load homepage
+    var url = this.urlInput.value;
     this.currentUrl = url;
     this.navigate(url);
     this.updateHistory(url);
   },
 
   handleEvent: function browser_handleEvent(evt) {
-    var urlbar = this.urlbar;
+    var urlInput = this.urlInput;
 
     switch (evt.type) {
       case 'submit':
-        var url = urlbar.value.trim();
-        var protocolRegexp = /^([a-z]+:)(\/\/)?/i;
-        var protocol = protocolRegexp.exec(url);
-        if (!protocol)
-          url = 'http://' + url;
-
-        this.navigate(url);
-        urlbar.value = url;
-        urlbar.blur();
-        evt.preventDefault();
+          this.go(evt);
         break;
 
       case 'keyup':
-        if (!MockHistory.backLength() || evt.keyCode != evt.DOM_VK_ESCAPE)
+        if (!SessionHistory.backLength() || evt.keyCode != evt.DOM_VK_ESCAPE)
           break;
 
         this.goBack();
@@ -104,15 +62,16 @@ var Browser = {
 
       case 'mozbrowserloadstart':
         this.currentTitle = '';
-        urlbar.classList.add('loading');
+        this.toolbarStart.classList.add('loading');
         break;
 
       case 'mozbrowserloadend':
-        urlbar.classList.remove('loading');
+        this.toolbarStart.classList.remove('loading');
         if (this.currentTitle)
-          urlbar.value = this.currentTitle;
+          urlInput.value = this.currentTitle;
         else
-          urlbar.value = this.currentUrl;
+          urlInput.value = this.currentUrl;
+        this.setUrlButtonMode(this.REFRESH);
         break;
 
       case 'mozbrowserlocationchange':
@@ -121,8 +80,9 @@ var Browser = {
 
       case 'mozbrowsertitlechange':
         this.currentTitle = evt.detail;
-        if (!this.addressbar.querySelector(':focus'))
-          this.urlbar.value = this.currentTitle;
+        if (!this.urlBar.querySelector(':focus'))
+          urlInput.value = this.currentTitle;
+        GlobalHistory.setPageTitle(this.currentUrl, this.currentTitle);
         break;
     }
   },
@@ -131,48 +91,74 @@ var Browser = {
     this.content.setAttribute('src', url);
   },
 
+  go: function browser_go(evt) {
+    evt.preventDefault();
+    if (this.urlButtonMode == this.REFRESH) {
+      this.navigate(this.currentUrl);
+      return;
+    }
+
+    var url = this.urlInput.value.trim();
+    var protocolRegexp = /^([a-z]+:)(\/\/)?/i;
+    var protocol = protocolRegexp.exec(url);
+    if (!protocol)
+      url = 'http://' + url;
+    if (url != this.currentUrl) {
+      this.urlInput.value = url;
+      this.currentUrl = url;
+    }
+    this.navigate(url);
+    this.urlInput.blur();
+  },
+
   goBack: function browser_goBack() {
-    MockHistory.back();
-    this.backButton.disabled = !MockHistory.backLength();
-    this.forwardButton.disabled = !MockHistory.forwardLength();
+    SessionHistory.back();
+    this.backButton.disabled = !SessionHistory.backLength();
+    this.forwardButton.disabled = !SessionHistory.forwardLength();
   },
 
   goForward: function browser_goForward() {
-    MockHistory.forward();
-    this.forwardButton.disabled = !MockHistory.forwardLength();
+    SessionHistory.forward();
+    this.backButton.disabled = !SessionHistory.backLength();
+    this.forwardButton.disabled = !SessionHistory.forwardLength();
   },
 
   updateHistory: function browser_updateHistory(url) {
-    MockHistory.pushState(null, '', url);
-    this.backButton.disabled = !MockHistory.backLength();
+    SessionHistory.pushState(null, '', url);
+    GlobalHistory.addVisit(url);
+    this.backButton.disabled = !SessionHistory.backLength();
+    this.forwardButton.disabled = !SessionHistory.forwardLength();
   },
- 
+
   locationChange: function browser_locationChange(url) {
-    this.currentUrl = url;
-    this.updateHistory(url);
-  },
-
-  refresh: function browser_refresh() {
-    var url = this.currentUrl;
-    this.content.setAttribute('src', url);
-    this.toggleMenu();
-  },
-
-  toggleMenu: function browser_toggleMenu() {
-    this.menu.classList.toggle('hidden');
-    this.shade.classList.toggle('hidden');
+    if (url != this.currentUrl) {
+      this.currentUrl = url;
+      this.updateHistory(url);
+    }
   },
 
   urlFocus: function browser_urlFocus() {
-    this.urlbar.value = this.currentUrl;
-    this.urlbar.select();
+    this.urlInput.value = this.currentUrl;
+    this.urlInput.select();
+    this.setUrlButtonMode(this.GO);
   },
 
   urlBlur: function browser_urlBlur() {
     if (this.currentTitle)
-      this.urlbar.value = this.currentTitle;
-    else
-      this.urlbar.value = this.currentUrl;
+      this.urlInput.value = this.currentTitle;
+    this.setUrlButtonMode(this.REFRESH);
+  },
+
+  setUrlButtonMode: function browser_setUrlButtonMode(mode) {
+    this.urlButtonMode = mode;
+    switch (mode) {
+      case this.GO:
+        this.urlButton.src = 'style/images/go.png';
+        break;
+      case this.REFRESH:
+        this.urlButton.src = 'style/images/refresh.png';
+        break;
+    }
   }
 };
 
@@ -180,51 +166,3 @@ window.addEventListener('load', function browserOnLoad(evt) {
   window.removeEventListener('load', browserOnLoad);
   Browser.init();
 });
-
-var MockHistory = {
-  history: [],
-  historyIndex: -1,
-
-  back: function() {
-    if (this.backLength() < 1)
-      return;
-    Browser.navigate(this.history[--this.historyIndex]);
-  },
-
-  forward: function() {
-    if(this.forwardLength() < 1)
-      return;
-    Browser.navigate(this.history[++this.historyIndex]);
-  },
-
-  historyLength: function() {
-    return this.history.length;
-  },
-
-  backLength: function() {
-   if (this.history.length < 2)
-     return 0;
-   return this.historyIndex;
-  },
-
-  forwardLength: function() {
-    return this.history.length - this.historyIndex - 1;
-  },
-
-  pushState: function(stateObj, title, url) {
-    var history = this.history;
-    var index = this.historyIndex;
-    if (url == history[index])
-      return;
-
-    // If history contains forward entries, replace them with the new location
-    if (this.forwardLength()) {
-      history.splice(index + 1, this.forwardLength(), url);
-      this.historyIndex++;
-    } else {
-      // Otherwise just append the new location to the end of the array
-      this.historyIndex = history.push(url) - 1;
-    }
-  }
-};
-

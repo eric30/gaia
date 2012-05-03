@@ -11,12 +11,36 @@
 # DEBUG       : debug mode enables mode output on the console and disable the #
 #               the offline cache. This is mostly for desktop debugging.      #
 #                                                                             #
+# REPORTER    : Mocha reporter to use for test output.                        #
+#                                                                             #
 ###############################################################################
 GAIA_DOMAIN?=gaiamobile.org
 
 ADB?=adb
 
 DEBUG?=0
+
+REPORTER=Spec
+
+
+###############################################################################
+# The above rules generate the profile/ folder and all its content.           #
+# The profile folder content depends on different rules:                      #
+#  1. manifests                                                               #
+#     A directory structure representing the applications installed using the #
+#     Apps API. In Gaia all applications use this method.                     #
+#     See https://developer.mozilla.org/en/Apps/Apps_JavaScript_API           #
+#                                                                             #
+#   2. offline                                                                #
+#     An Application Cache database containing Gaia apps, so the phone can be #
+###############################################################################
+GAIA_DOMAIN?=gaiamobile.org
+
+ADB?=adb
+
+DEBUG?=0
+
+REPORTER=Spec
 
 
 ###############################################################################
@@ -44,9 +68,9 @@ DEBUG?=0
 # by editing /etc/hosts on linux/mac. This steps would not be required
 # anymore once https://bugzilla.mozilla.org/show_bug.cgi?id=722197 will land.
 ifeq ($(DEBUG),1)
-GAIA_PORT=:8080
+GAIA_PORT?=:8080
 else
-GAIA_PORT=
+GAIA_PORT?=
 endif
 
 
@@ -61,6 +85,16 @@ else
 MD5SUM = md5sum -b
 SED_INPLACE_NO_SUFFIX = sed -i
 DOWNLOAD_CMD = wget
+endif
+
+# Test agent setup
+TEST_AGENT_DIR=tools/test-agent/
+ifeq ($(strip $(NODEJS)),)
+	NODEJS := `which node`
+endif
+
+ifeq ($(strip $(NPM)),)
+	NPM := `which npm`
 endif
 
 #Marionette testing variables
@@ -110,12 +144,15 @@ manifests:
 
 # Generate profile/OfflineCache/
 offline: install-xulrunner
+ifneq ($(DEBUG),1)
 	@echo "Building offline cache"
 	@rm -rf profile/OfflineCache
 	@mkdir -p profile/OfflineCache
 	@cd ..
-	$(XULRUNNER) $(XPCSHELL) -e 'const GAIA_DIR = "$(CURDIR)"; const PROFILE_DIR = "$(CURDIR)/profile"; const GAIA_DOMAIN = "$(GAIA_DOMAIN)$(GAIA_PORT)"' offline-cache.js
+	$(XULRUNNER) $(XPCSHELL) -e 'const GAIA_DIR = "$(CURDIR)"; const PROFILE_DIR = "$(CURDIR)/profile"; const GAIA_DOMAIN = "$(GAIA_DOMAIN)$(GAIA_PORT)"' build/offline-cache.js
 	@echo "Done"
+endif
+
 
 # The install-xulrunner target arranges to get xulrunner downloaded and sets up
 # some commands for invoking it. But it is platform dependent
@@ -137,7 +174,7 @@ XULRUNNER_DOWNLOAD=http://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/11.
 XULRUNNER=./xulrunner/run-mozilla.sh
 XPCSHELL=./xulrunner/xpcshell
 
-install-xulrunner:
+install-xulrunner :
 	test -d xulrunner || ($(DOWNLOAD_CMD) $(XULRUNNER_DOWNLOAD) && tar xjf xulrunner*.tar.bz2 && rm xulrunner*.tar.bz2)
 endif
 
@@ -145,7 +182,7 @@ endif
 preferences: install-xulrunner
 	@echo "Generating prefs.js..."
 	@mkdir -p profile
-	$(XULRUNNER) $(XPCSHELL) -e 'const GAIA_DIR = "$(CURDIR)"; const PROFILE_DIR = "$(CURDIR)/profile"; const GAIA_DOMAIN = "$(GAIA_DOMAIN)$(GAIA_PORT)"; const DEBUG = $(DEBUG)' preferences.js
+	$(XULRUNNER) $(XPCSHELL) -e 'const GAIA_DIR = "$(CURDIR)"; const PROFILE_DIR = "$(CURDIR)/profile"; const GAIA_DOMAIN = "$(GAIA_DOMAIN)$(GAIA_PORT)"; const DEBUG = $(DEBUG)' build/preferences.js
 	@echo "Done"
 
 
@@ -184,6 +221,36 @@ tests: manifests offline
 	echo "Checking the injected Gaia..."
 	test -L $(INJECTED_GAIA) || ln -s $(CURDIR) $(INJECTED_GAIA)
 	TEST_PATH=$(TEST_PATH) make -C $(MOZ_OBJDIR) mochitest-browser-chrome EXTRA_TEST_ARGS="--browser-arg=\"\" --extra-profile-file=$(CURDIR)/profile/webapps --extra-profile-file=$(CURDIR)/profile/OfflineCache --extra-profile-file=$(CURDIR)/profile/user.js"
+
+.PHONY: common-install
+common-install:
+	@test -x $(NODEJS) || (echo "Please Install NodeJS -- (use aptitude on linux or homebrew on osx)" && exit 1 )
+	@test -x $(NPM) || (echo "Please install NPM (node package manager) -- http://npmjs.org/" && exit 1 )
+
+	cd $(TEST_AGENT_DIR) && npm install .
+
+.PHONY: update-common
+update-common: common-install
+	mkdir -p common/vendor/test-agent/
+	mkdir -p common/vendor/marionette-client/
+	mkdir -p common/vendor/chai/
+	rm -f common/vendor/test-agent/test-agent*.js
+	rm -f common/vendor/marionette-client/*.js
+	rm -f common/vendor/chai/*.js
+	cp $(TEST_AGENT_DIR)/node_modules/test-agent/test-agent.js common/vendor/test-agent/
+	cp $(TEST_AGENT_DIR)/node_modules/test-agent/test-agent.css common/vendor/test-agent/
+	cp $(TEST_AGENT_DIR)/node_modules/marionette-client/marionette.js common/vendor/marionette-client/
+	cp $(TEST_AGENT_DIR)/node_modules/chai/chai.js common/vendor/chai/
+
+# Temp make file method until we can switch
+# over everything in test
+.PHONY: test-agent-test
+test-agent-test:
+	@$(TEST_AGENT_DIR)/node_modules/test-agent/bin/js-test-agent test --reporter $(REPORTER)
+
+.PHONY: test-agent-server
+test-agent-server: common-install
+	$(TEST_AGENT_DIR)/node_modules/test-agent/bin/js-test-agent server -c ./$(TEST_AGENT_DIR)/test-agent-server.js --http-path . --growl
 
 .PHONY: marionette
 marionette:
@@ -262,19 +329,20 @@ update-offline-manifests:
 		fi \
 	done
 
-
 # If your gaia/ directory is a sub-directory of the B2G directory, then
 # you should use the install-gaia target of the B2G Makefile. But if you're
 # working on just gaia itself, and you already have B2G firmware on your
 # phone, and you have adb in your path, then you can use the install-gaia
 # target to update the gaia files and reboot b2g
+PROFILE_PATH = /data/b2g/mozilla/`$(ADB) shell ls -1 /data/b2g/mozilla/ | grep default | tr -d [:cntrl:]`
 install-gaia: profile
 	$(ADB) start-server
-	$(ADB) shell rm -r /data/local/*
 	$(ADB) shell rm -r /cache/*
-	# just push the profile
-	$(ADB) push profile/OfflineCache /data/local/OfflineCache
-	$(ADB) push profile/webapps /data/local/webapps
+	python build/install-gaia.py "$(ADB)"
+
+	# Until bug 746121 lands, push user.js in the profile
+	$(ADB) push profile/user.js ${PROFILE_PATH}/user.js
+
 	@echo "Installed gaia into profile/."
 	$(ADB) shell kill $(shell $(ADB) shell toolbox ps | grep "b2g" | awk '{ print $$2; }')
 	@echo 'Rebooting b2g now'
