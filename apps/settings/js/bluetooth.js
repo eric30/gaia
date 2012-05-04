@@ -25,6 +25,7 @@ window.addEventListener('DOMContentLoaded', function discoverDevices(evt) {
 
   document.querySelector('#bluetooth-status input').onchange = function() {
     var req = gBluetoothAdapter.setEnabled(this.checked);
+    clearList(gDeviceList);
 
     req.onsuccess = function() {
       dump("Bluetooth - success");
