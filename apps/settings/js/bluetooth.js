@@ -83,14 +83,16 @@ window.addEventListener('DOMContentLoaded', function discoverDevices(evt) {
     var len = gDiscoveredDevices.length;
 
     for (i = 0;i < len;++i) {
-      if (gDiscoveredDevices[i] == evt.device) {
+      if (gDiscoveredDevices[i].address == evt.device.address) {
         break;
       }
     }
 
     if (i == len) {
-      gDeviceList.appendChild(newScanItem(i, evt.device.name));
-      gDiscoveredDevices[i] = evt.device;
+      if (evt.device.name != "") {
+        gDeviceList.appendChild(newScanItem(i, evt.device.name));
+        gDiscoveredDevices[i] = evt.device;
+      }
     }
   };
 
