@@ -5,8 +5,10 @@
 
 window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
   var gBluetoothManager = navigator.mozBluetooth;
+  var gBluetoothDefaultAdapter = null;
 
   var gBluetoothPowerStatus = document.querySelector('#bluetooth-status small');
+  var gBluetoothVisibility = document.querySelector('#bluetooth-visibility small');
 
   var settings = window.navigator.mozSettings;
   if (settings) {
@@ -26,12 +28,26 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
     };
   }
 
+  function getDefaultAdapter() {
+    var req = gBluetoothManager.getDefaultAdapter();
+
+    req.onsuccess = function bt_getDefaultAdapterSuccess() {
+      gBluetoothDefaultAdapter = req.result;
+    };
+
+    req.onerror = function bt_getDefaultAdapterError() {
+      dump("ADAPTER GET ERROR");
+      dump(req.error.name);
+    }
+  };
+
   function changeBT() {
     var req = gBluetoothManager.setEnabled(this.checked);
 
     req.onsuccess = function bt_enabledSuccess() {
       if (gBluetoothManager.enabled) {
         gBluetoothPowerStatus.textContent = 'Enabled';
+        window.setTimeout(getDefaultAdapter, 1000);
       } else {
         gBluetoothPowerStatus.textContent = 'Disabled';
       }
@@ -49,5 +65,13 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
     };
   };
 
+  function changeBtVisibility() {
+    if (!gBluetoothManager.enabled) {
+      console.log("Bluetooth has not enabled.");
+      return ;
+    }
+  };
+
   document.querySelector('#bluetooth-status input').onchange = changeBT;
+  document.querySelector('#bluetooth-visibility input').onchange = changeBtVisibility;
 });
