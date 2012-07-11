@@ -67,8 +67,24 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
 
   function changeBtVisibility() {
     if (!gBluetoothManager.enabled) {
-      console.log("Bluetooth has not enabled.");
-      return ;
+      dump("Bluetooth has not enabled.");
+      return;
+    }
+
+    if (this.checked == gBluetoothDefaultAdapter.discoverable) {
+      dump("Same value, no action will be performed.");
+      return;
+    }
+
+    var req = gBluetoothDefaultAdapter.setDiscoverable(this.checked);
+    
+    req.onsuccess = function bt_setDiscoverableSuccess() {
+      gBluetoothVisibility.textContent = gBluetoothDefaultAdapter.discoverable ? 'visible' : 'invisible';
+      dump("Discoverable: " + gBluetoothDefaultAdapter.discoverable);
+    };
+
+    req.onerror = function bt_setDiscoverableError() {
+      dump("Error on set discoverable");
     }
   };
 
