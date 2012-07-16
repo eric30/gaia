@@ -32,7 +32,38 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
     var req = gBluetoothManager.getDefaultAdapter();
 
     req.onsuccess = function bt_getDefaultAdapterSuccess() {
+      if (gBluetoothDefaultAdapter != null) return;
+
       gBluetoothDefaultAdapter = req.result;
+
+      gBluetoothDefaultAdapter.onrequestconfirmation = function(evt) {
+        dump("[Gaia] Passkey = " + evt.passkey + ", request confirmation");
+        dump("[Gaia] Device path = " + evt.deviceObjectPath);
+
+        // TODO(Eric)
+        // To respond to this event, we need to pop up a dialog to let user
+        // check passkey. If it matches, call 
+        // gBluetoothDefaultAdapter.setPairingConfirmationTemp(true)
+        // , or call 
+        // gBluetoothDefaultAdapter.setPairingConfirmationTemp(false)
+
+        // TODO(Eric)
+        // I did what SMS had done, use NotificationHelper to show a 
+        // notification on status bar.
+        NotificationHelper.send("Bluetooth", "test", null);
+      };    
+      
+      gBluetoothDefaultAdapter.onrequestpincode = function(evt) {
+        dump("[Gaia] We need to send a set of pin code back!");
+      };
+
+      gBluetoothDefaultAdapter.onrequestpasskey = function(evt) {
+        dump("[Gaia] We need to send a set of passkey back!");
+      };      
+      
+      gBluetoothDefaultAdapter.oncancel = function(evt) {
+        dump("[Gaia] Cancel");
+      };
     };
 
     req.onerror = function bt_getDefaultAdapterError() {
@@ -70,6 +101,33 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
       dump("Bluetooth has not enabled.");
       return;
     }
+
+    // xxxxxxxxxx  Temp
+    var testBdAddress = "A8:26:D9:DF:64:7A";
+
+    if (this.checked) {
+      var req2 = gBluetoothDefaultAdapter.pairTemp(testBdAddress);
+
+      req2.onsuccess = function bt_pairTempSuccess() {
+        dump("pairing request sent");
+      };
+
+      req2.onerror = function() {
+        dump("error on pairing");
+      };
+    } else {
+      var req2 = gBluetoothDefaultAdapter.unpairTemp(testBdAddress);
+
+      req2.onsuccess = function bt_unpairTempSuccess() {
+        dump("unpairing request sent");
+      };
+
+      req2.onerror = function() {
+        dump("error on unpairing");
+      };
+    }
+
+    return;
 
     if (this.checked == gBluetoothDefaultAdapter.discoverable) {
       dump("Same value, no action will be performed.");
