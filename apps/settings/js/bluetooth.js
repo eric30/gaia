@@ -9,6 +9,9 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
 
   var gBluetoothPowerStatus = document.querySelector('#bluetooth-status small');
   var gBluetoothVisibility = document.querySelector('#bluetooth-visibility small');
+  var gDeviceList = document.querySelector('#bluetooth-devices');
+
+  var gDiscoveredDevices = new Array();
 
   var settings = window.navigator.mozSettings;
   if (settings) {
@@ -55,14 +58,34 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
       
       gBluetoothDefaultAdapter.onrequestpincode = function(evt) {
         dump("[Gaia] We need to send a set of pin code back!");
+        gBluetoothDefaultAdapter.setPinCode(evt.deviceAddress, "0000");
       };
 
       gBluetoothDefaultAdapter.onrequestpasskey = function(evt) {
         dump("[Gaia] We need to send a set of passkey back!");
       };      
-      
+
       gBluetoothDefaultAdapter.oncancel = function(evt) {
         dump("[Gaia] Cancel");
+      };      
+
+      gBluetoothDefaultAdapter.ondevicefound = function(evt) {
+        dump("[Gaia] Device found!!!");
+        var i;
+        var len = gDiscoveredDevices.length;
+
+        for (i = 0;i < len;++i) {
+          if (gDiscoveredDevices[i].address == evt.device.address) {
+            break;
+          }
+        }
+
+        if (i == len) {
+          if (evt.device.name != "") {
+            gDeviceList.appendChild(newScanItem(i, evt.device.name));
+            gDiscoveredDevices[i] = evt.device;
+          }
+        }
       };
     };
 
@@ -102,33 +125,6 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
       return;
     }
 
-    // xxxxxxxxxx  Temp
-    var testBdAddress = "A8:26:D9:DF:64:7A";
-
-    if (this.checked) {
-      var req2 = gBluetoothDefaultAdapter.pairTemp(testBdAddress);
-
-      req2.onsuccess = function bt_pairTempSuccess() {
-        dump("pairing request sent");
-      };
-
-      req2.onerror = function() {
-        dump("error on pairing");
-      };
-    } else {
-      var req2 = gBluetoothDefaultAdapter.unpairTemp(testBdAddress);
-
-      req2.onsuccess = function bt_unpairTempSuccess() {
-        dump("unpairing request sent");
-      };
-
-      req2.onerror = function() {
-        dump("error on unpairing");
-      };
-    }
-
-    return;
-
     if (this.checked == gBluetoothDefaultAdapter.discoverable) {
       dump("Same value, no action will be performed.");
       return;
@@ -146,6 +142,66 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
     }
   };
 
+  function startStopDiscovery() {
+    var req;
+
+    if (this.checked) {
+      gDiscoveredDevices.length = 0;
+      clearList(gDeviceList);
+
+      req = gBluetoothDefaultAdapter.startDiscovery();
+    } else {
+      req = gBluetoothDefaultAdapter.stopDiscovery();
+    }
+
+    req.onsuccess = function bt_startStopDiscovery() {
+      dump("[Gaia] Start/Stop discovery ok.");
+    };
+
+    req.onerror = function bt_startStopDiscoveryFail() {
+      dump("[Gaia] Start/Stop discovery failed.");
+    };
+  };
+
+  function newScanItem(index, str) {
+    var a = document.createElement('a');
+    a.textContent = str;
+
+    var span = document.createElement('span');
+    span.className = 'bluetooth-search';
+
+    var label = document.createElement('label');
+    label.appendChild(span);
+
+    var li = document.createElement('li');
+    li.appendChild(a);
+    li.appendChild(label);
+
+    li.onclick = function() {
+      var device = gDiscoveredDevices[index];
+      var req = gBluetoothDefaultAdapter.pairTemp(device.address);
+
+      req.onsuccess = function bt_pairTempSuccess() {
+        dump("pairing request sent");
+      };
+
+      req.onerror = function() {
+        dump("error on pairing, try to unpair");
+        var req2 = gBluetoothDefaultAdapter.unpairTemp(device.address);
+      };
+
+      dump("[Gaia] device clicked!");
+    }
+
+    return li;
+  };
+
+  function clearList(list) {
+    while (list.hasChildNodes())
+      list.removeChild(list.lastChild);
+  };
+
   document.querySelector('#bluetooth-status input').onchange = changeBT;
   document.querySelector('#bluetooth-visibility input').onchange = changeBtVisibility;
+  document.querySelector('#bluetooth-discovery input').onchange = startStopDiscovery;
 });
