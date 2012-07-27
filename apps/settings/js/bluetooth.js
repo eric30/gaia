@@ -38,12 +38,12 @@ window.addEventListener('DOMContentLoaded', function bluetoothSettings(evt) {
 
       gBluetoothDefaultAdapter.onrequestconfirmation = function(evt) {
         dump("[Gaia] Passkey = " + evt.passkey + ", request confirmation");
-        dump("[Gaia] Device path = " + evt.deviceObjectPath);
+        dump("[Gaia] Device path = " + evt.deviceAddress);
 
         // TODO(Eric)
         // To respond to this event, we need to pop up a dialog to let user
         // check passkey. If it matches, call 
-        // gBluetoothDefaultAdapter.setPairingConfirmationTemp(true)
+        gBluetoothDefaultAdapter.setPairingConfirmation(evt.deviceAddress, true)
         // , or call 
         // gBluetoothDefaultAdapter.setPairingConfirmationTemp(false)
 
