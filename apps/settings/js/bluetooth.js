@@ -3,6 +3,13 @@
 
 'use strict';
 
+var uuidAudioSink     = "0000110B-0000-1000-8000-00805F9B34FB";
+var uuidAudioSource   = "0000110A-0000-1000-8000-00805F9B34FB";
+var uuidAdvAudioDist  = "0000110D-0000-1000-8000-00805F9B34FB";
+var uuidHeadset       = "00001108-0000-1000-8000-00805F9B34FB";
+var uuidHandsfree     = "0000111E-0000-1000-8000-00805F9B34FB";
+var uuidHandsfreeAG   = "0000111F-0000-1000-8000-00805F9B34FB";
+
 // handle BlueTooth settings
 window.addEventListener('localized', function bluetoothSettings(evt) {
   var _ = navigator.mozL10n.get;
@@ -165,6 +172,24 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
       startDiscovery();
     };
 
+    function startCreateSocket() {
+      /*
+      var req = gPairingDevice.createSocket(uuidHandsfree);
+
+      dump("[Gaia] Let's create sockets!!");
+
+      req.onsuccess = function(evt) {
+        dump("[Gaia] on success");
+      };
+
+      req.onerror = function(evt) {
+        dump("[Gaia] on error");
+      };
+      */
+      dump("Connect to Headset: " + gPairingDevice.name);
+      gPairingDevice.connectHeadset();
+    }
+
     // private DOM helper: create a device list item
     function newListItem(device) {
       var deviceName = document.createElement('a');
@@ -191,6 +216,7 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
 
         req.onsuccess = function bt_pairTempSuccess() {
           dump("[Gaia] Pairing done");
+          setTimeout(startCreateSocket, 2000);
         };
 
         req.onerror = function() {
