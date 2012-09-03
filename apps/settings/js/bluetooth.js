@@ -277,7 +277,7 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
 
       var req = defaultAdapter.startDiscovery();
       req.onsuccess = function bt_discoveryStart() {
-        setTimeout(stopDiscovery, 60000);
+        setTimeout(stopDiscovery, 10000);
       };
       req.onerror = function bt_discoveryFailed() {
         searchingItem.hidden = true;
@@ -373,7 +373,6 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
       dump("[Gaia] Unpair error");
     };
   }
-
 
   document.querySelector('#bluetooth-temp-unpair input').onchange = unpairDevice;
 });
