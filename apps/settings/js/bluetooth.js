@@ -173,21 +173,16 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
     };
 
     function startCreateSocket() {
-      /*
-      var req = gPairingDevice.createSocket(uuidHandsfree);
-
-      dump("[Gaia] Let's create sockets!!");
-
-      req.onsuccess = function(evt) {
-        dump("[Gaia] on success");
-      };
-
-      req.onerror = function(evt) {
-        dump("[Gaia] on error");
-      };
-      */
       dump("Connect to Headset: " + gPairingDevice.name);
-      gPairingDevice.connectHeadset();
+      var req = gPairingDevice.connectHeadset();
+
+      req.onsuccess = function() {
+        dump("We won!! We won!!!");
+      };
+      
+      req.onerror = function() {
+        dump("We lost the game");
+      };
     }
 
     // private DOM helper: create a device list item
