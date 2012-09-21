@@ -296,6 +296,7 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
           }
           aItem.querySelector('small').textContent = device.address;
           //XXX show a "pair failed" alert
+          dump("[Gaia] Pair failed");
         };
       };
       openList.list.appendChild(aItem);
@@ -366,12 +367,21 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
           (function(device) {
             var aItem = newListItem(device, _('device-status-paired'));
             aItem.onclick = function() {
+              /*
               var req = defaultAdapter.unpair(device);
               req.onsuccess = function bt_pairSuccess() {
                 getPairedDevice();
                 onDeviceFound({device: device});
               };
               req.onerror = function bt_pairError() {
+              };
+              */
+              var req = device.connectHeadset();
+              req.onsuccess = function bt_connSuccess() {
+                dump("[Gaia] Connect OK");
+              };
+              req.onerror = function bt_connError() {
+                dump("[Gaia] Connect failed");
               };
             };
             pairList.list.appendChild(aItem);
