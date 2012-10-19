@@ -151,6 +151,11 @@ var Bluetooth = {
         {deviceConnected: this.connected});
       window.dispatchEvent(evt);
     }
+  },
+
+  getAdapter: function bt_getAdapter() {
+    var adapter = (this.defaultAdapter) ? this.defaultAdapter : null;
+    return adapter;
   }
 };
 

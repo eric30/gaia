@@ -608,6 +608,7 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
 
 
   bluetooth.onadapteradded = function bt_adapterAdded() {
+    console.log('=== settings --> onadapteradded ===');
     initialDefaultAdapter();
   };
 
