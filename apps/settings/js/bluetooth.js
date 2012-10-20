@@ -324,6 +324,19 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
         }
       );
 
+      navigator.mozSetMessageHandler('bluetooth-opp-receiving-file-confirmation',
+        function bt_temp(message) {
+          dump("RECEIVING CONFIRMATION === settings");
+          dump("Address: " + message.address);
+          dump("Content Type: " + message.contentType);
+          dump("File Name: " + message.fileName);
+          dump("File Length: " + message.fileLength);
+      
+          defaultAdapter.confirmReceivingFile(message.address, true);
+        }
+      );
+
+
       getPairedDevice();
       startDiscovery();
     }
