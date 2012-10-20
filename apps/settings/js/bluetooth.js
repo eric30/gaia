@@ -324,6 +324,44 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
         }
       );
 
+      dump("init");
+
+      navigator.mozSetMessageHandler('bluetooth-opp-receiving-file-confirmation',
+        function bt_temp(message) {
+          dump("RECEIVING CONFIRMATION === settings");
+          dump("Address: " + message.address);
+          dump("Content Type: " + message.contentType);
+          dump("File Name: " + message.fileName);
+          dump("File Length: " + message.fileLength);
+      
+          defaultAdapter.confirmReceivingFile(message.address, true);
+        }
+      );
+
+      navigator.mozSetMessageHandler('bluetooth-opp-update-progress',
+        function bt_temp(message) {
+          dump("UPDATE PROGRESS === settings");
+          dump("Address: " + message.address);
+          dump("Received: " + message.received);
+          dump("Processed Length: " + message.processedLength);
+          dump("File Length: " + message.fileLength);
+        }
+      );
+
+      navigator.mozSetMessageHandler('bluetooth-opp-transfer-complete',
+        function bt_temp(message) {
+          dump("TRANSFER COMPLETE === settings");
+          dump("Address: " + message.address);
+          dump("Success: " + message.success);
+          dump("Received: " + message.received);
+          dump("Content Type: " + message.contentType);
+          dump("File Name: " + message.fileName);
+          dump("File Length: " + message.fileLength);
+        }
+      );
+
+      dump("init done");
+
       getPairedDevice();
       startDiscovery();
     }

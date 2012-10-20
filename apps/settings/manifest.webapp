@@ -46,6 +46,9 @@
                "bluetooth-cancel",
                "bluetooth-pairedstatuschanged",
                "bluetooth-hfp-status-changed",
+               "bluetooth-opp-receiving-file-confirmation",
+               "bluetooth-opp-transfer-complete",
+               "bluetooth-opp-update-progress",
                "icc-stkcommand"],
   "locales": {
     "ar": {
