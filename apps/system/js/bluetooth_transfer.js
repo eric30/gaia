@@ -25,6 +25,9 @@ var BluetoothTransfer = {
     var self = this;
     navigator.mozSetMessageHandler('bluetooth-opp-receiving-file-confirmation',
       function bt_gotReceivingFileConfirmationMessage(message) {
+        dump("========= RECEIVING FILE CONFIRMATION ===========");
+        dump("address: " + message.address);
+        dump("fileName: " + message.fileName);
         self.onReceivingFileConfirmation(message);
       }
     );
@@ -48,9 +51,11 @@ var BluetoothTransfer = {
 
   getDeviceName: function bt_getDeviceName(address) {
     var length = this.pairList.index.length;
+    dump("current paired devices count:" + length);
     for (var i = 0; i < length; i++) {
-      if (this.pairList.index[i] == address)
-        return pairList.index[i].name;
+      dump("paired device[" + i +"]:" + this.pairList.index[i]);
+      if (this.pairList.index[i].address == address)
+        return this.pairList.index[i].name;
     }
     return 'Unknow Device';
   },
@@ -119,6 +124,7 @@ var BluetoothTransfer = {
     var deviceName = '';
     var self = this;
     this.getPairedDevice(function getPairedDeviceComplete() {
+      dump("In setPairedDevice:" + address);
       deviceName = self.getDeviceName(address);
       CustomDialog.show(_('acceptFileTransfer'),
                         _('wantToReceive',

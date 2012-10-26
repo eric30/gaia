@@ -62,8 +62,7 @@ var Bluetooth = {
     var bluetooth = window.navigator.mozBluetooth;
     var self = this;
 
-    if (!bluetooth || this.defaultAdapter ||
-        !('getDefaultAdapter' in bluetooth))
+    if (!bluetooth || !('getDefaultAdapter' in bluetooth))
       return;
 
     var req = bluetooth.getDefaultAdapter();

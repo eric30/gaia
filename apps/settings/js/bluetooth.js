@@ -516,6 +516,7 @@ window.addEventListener('localized', function bluetoothSettings(evt) {
 
       var req = defaultAdapter.startDiscovery();
       req.onsuccess = function bt_discoveryStart() {
+        dump("startDiscovery ok");
         searchAgainBtn.disabled = true;
         if (!discoverTimeout)
           discoverTimeout = setTimeout(stopDiscovery, 60000);
