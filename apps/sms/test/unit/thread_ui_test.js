@@ -593,6 +593,7 @@ suite('thread_ui.js >', function() {
     test('sms to mms and back displays banner', function() {
       // cause a type switch event to happen
       Compose.type = 'mms';
+      assert.isTrue(sendButton.classList.contains('has-counter'));
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for mms');
       assert.equal(convertBannerText.textContent, 'converted-to-mms',
@@ -608,6 +609,7 @@ suite('thread_ui.js >', function() {
 
       Compose.type = 'sms';
 
+      assert.isFalse(sendButton.classList.contains('has-counter'));
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for sms');
       assert.equal(convertBannerText.textContent, 'converted-to-sms',
@@ -1242,25 +1244,27 @@ suite('thread_ui.js >', function() {
       window.confirm.restore();
       ThreadUI.resendMessage.restore();
     });
-    test('clicking on an error message bubble triggers a confirmation dialog',
+    test('clicking on "pack-end" aside in an error message' +
+      'triggers a confirmation dialog',
       function() {
-      this.elems.errorMsg.querySelector('.bubble').click();
+      this.elems.errorMsg.querySelector('.pack-end').click();
       assert.equal(window.confirm.callCount, 1);
     });
-    test('clicking within an error message bubble triggers a confirmation ' +
-      'dialog', function() {
-      this.elems.errorMsg.querySelector('.bubble *').click();
-      assert.equal(window.confirm.callCount, 1);
+    test('clicking on p element in an error message' +
+      'does not triggers a confirmation  dialog',
+      function() {
+      this.elems.errorMsg.querySelector('.bubble p').click();
+      assert.equal(window.confirm.callCount, 0);
     });
     test('clicking on an error message does not trigger a confirmation dialog',
       function() {
       this.elems.errorMsg.click();
       assert.equal(window.confirm.callCount, 0);
     });
-    test('clicking on an error message bubble and accepting the ' +
+    test('clicking on "pack-end" aside in an error message and accepting the ' +
       'confirmation dialog triggers a message re-send operation', function() {
       window.confirm.returns(true);
-      this.elems.errorMsg.querySelector('.bubble').click();
+      this.elems.errorMsg.querySelector('.pack-end').click();
       assert.equal(ThreadUI.resendMessage.callCount, 1);
     });
     test('clicking on an error message bubble and rejecting the ' +
@@ -1279,35 +1283,62 @@ suite('thread_ui.js >', function() {
   });
 
   suite('createMmsContent', function() {
-    test('generated html', function() {
-      var inputArray = [{
-        text: '&escapeTest',
-        name: 'imageTest.jpg',
-        blob: testImageBlob
-      }];
-      var output = ThreadUI.createMmsContent(inputArray);
-      var img = output.querySelectorAll('img');
-      assert.equal(img.length, 1);
-      var span = output.querySelectorAll('span');
-      assert.equal(span.length, 1);
-      assert.equal(span[0].innerHTML.slice(0, 5), '&amp;');
+    suite('generated html', function() {
+
+      test('text content', function() {
+        var inputArray = [{
+          text: 'part 1'
+        }, {
+          text: 'part 2'
+        }];
+        var output = ThreadUI.createMmsContent(inputArray);
+
+        assert.equal(output.childNodes.length, 2);
+        assert.equal(output.childNodes[0].innerHTML, 'part 1');
+        assert.equal(output.childNodes[1].innerHTML, 'part 2');
+      });
+
+      test('blob content', function() {
+        var inputArray = [{
+          name: 'imageTest.jpg',
+          blob: testImageBlob
+        }, {
+          name: 'imageTest.jpg',
+          blob: testImageBlob
+        }];
+        var output = ThreadUI.createMmsContent(inputArray);
+
+        assert.equal(output.childNodes.length, 2);
+        assert.match(output.childNodes[0].nodeName, /iframe/i);
+        assert.match(output.childNodes[1].nodeName, /iframe/i);
+      });
+
+      test('mixed content', function() {
+        var inputArray = [{
+          text: 'text',
+          name: 'imageTest.jpg',
+          blob: testImageBlob
+        }];
+        var output = ThreadUI.createMmsContent(inputArray);
+
+        assert.equal(output.childNodes.length, 2);
+        assert.match(output.childNodes[0].nodeName, /iframe/i);
+        assert.equal(output.childNodes[1].innerHTML, 'text');
+      });
     });
-  });
 
-  suite('MMS images', function() {
-    var img;
-    var messageContainer;
-
-    setup(function() {
+    test('Clicking on an attachment triggers its `view` method', function() {
+      var messageContainer;
       // create an image mms DOM Element:
       var inputArray = [{
         name: 'imageTest.jpg',
         blob: testImageBlob
       }];
+      var viewSpy = sinon.spy(Attachment.prototype, 'view');
 
       // quick dirty creation of a thread with image:
       var output = ThreadUI.createMmsContent(inputArray);
-      img = output.querySelector('img');
+      var attachmentDOM = output.childNodes[0];
 
       // need to get a container from ThreadUI because event is delegated
       messageContainer = ThreadUI.getMessageContainer(Date.now(), false);
@@ -1315,85 +1346,12 @@ suite('thread_ui.js >', function() {
       this.sinon.stub(ThreadUI, 'handleMessageClick');
 
       // Start the test: simulate a click event
-      img.click();
-    });
+      attachmentDOM.click();
 
-    test('MozActivity is called with the proper info on click', function() {
-      assert.equal(MockMozActivity.calls.length, 1);
-      var call = MockMozActivity.calls[0];
-      assert.equal(call.name, 'open');
-      assert.isTrue(call.data.allowSave);
-      assert.equal(call.data.type, 'image/jpeg');
-      assert.equal(call.data.filename, 'imageTest.jpg');
-      assert.equal(call.data.blob, testImageBlob);
-    });
+      assert.equal(viewSpy.callCount, 1);
+      assert.ok(viewSpy.calledWith, { allowSave: true });
 
-    test('Does not call handleMessageClick', function() {
-      assert.isFalse(ThreadUI.handleMessageClick.called);
-    });
-  });
-
-  suite('MMS audio', function() {
-    var audio;
-    setup(function() {
-      // create an image mms DOM Element:
-      var inputArray = [{
-        name: 'audio.oga',
-        blob: testAudioBlob
-      }];
-
-      // quick dirty creation of a thread with image:
-      var output = ThreadUI.createMmsContent(inputArray);
-      audio = output.querySelector('.audio-placeholder');
-
-      // need to get a container from ThreadUI because event is delegated
-      var messageContainer = ThreadUI.getMessageContainer(Date.now(), false);
-      messageContainer.appendChild(output);
-    });
-
-    test('MozActivity is called with the proper info on click', function() {
-      audio.click();
-
-      // check that the MozActivity was called with the proper info
-      assert.equal(MockMozActivity.calls.length, 1);
-      var call = MockMozActivity.calls[0];
-      assert.equal(call.name, 'open');
-      assert.isTrue(call.data.allowSave);
-      assert.equal(call.data.type, 'audio/ogg');
-      assert.equal(call.data.filename, 'audio.oga');
-      assert.equal(call.data.blob, testAudioBlob);
-    });
-  });
-
-  suite('MMS video', function() {
-    var video;
-    setup(function() {
-      // create an image mms DOM Element:
-      var inputArray = [{
-        name: 'video.ogv',
-        blob: testVideoBlob
-      }];
-
-      // quick dirty creation of a thread with video:
-      var output = ThreadUI.createMmsContent(inputArray);
-      video = output.querySelector('.video-placeholder');
-
-      // need to get a container from ThreadUI because event is delegated
-      var messageContainer = ThreadUI.getMessageContainer(Date.now(), false);
-      messageContainer.appendChild(output);
-    });
-
-    test('MozActivity is called with the proper info on click', function() {
-      video.click();
-
-      // check that the MozActivity was called with the proper info
-      assert.equal(MockMozActivity.calls.length, 1);
-      var call = MockMozActivity.calls[0];
-      assert.equal(call.name, 'open');
-      assert.isTrue(call.data.allowSave);
-      assert.equal(call.data.type, 'video/ogg');
-      assert.equal(call.data.filename, 'video.ogv');
-      assert.equal(call.data.blob, testVideoBlob);
+      viewSpy.reset();
     });
   });
 

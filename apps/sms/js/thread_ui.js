@@ -10,20 +10,11 @@ function thui_mmsAttachmentClick(target) {
   if (!attachment) {
     return false;
   }
-  var activity = new MozActivity({
-    name: 'open',
-    data: {
-      allowSave: true,
-      blob: attachment.blob,
-      filename: attachment.name,
-      type: attachment.blob.type
-    }
+
+  attachment.view({
+    allowSave: true
   });
-  activity.onerror = function() {
-    console.error('error with open activity', this.error.name);
-    // TODO: Add an alert here with a string saying something like
-    // "There is no application available to open this file type"
-  };
+
   return true;
 }
 
@@ -375,6 +366,8 @@ var ThreadUI = global.ThreadUI = {
         return event.preventDefault();
       }
     }
+
+    this.updateCounter();
 
     var message = navigator.mozL10n.get('converted-to-' + Compose.type);
     this.convertNotice.querySelector('p').textContent = message;
@@ -862,36 +855,23 @@ var ThreadUI = global.ThreadUI = {
 
   createMmsContent: function thui_createMmsContent(dataArray) {
     var container = document.createDocumentFragment();
-    dataArray.forEach(function(attachment) {
+    dataArray.forEach(function(messageData) {
       var mediaElement, textElement;
 
-      if (attachment.name && attachment.blob) {
-        var type = Utils.typeFromMimeType(attachment.blob.type);
-        if (type) {
-          // we special case audio to display an image of an audio attachment
-          // video currently falls through this path too, we should revisit this
-          // with #869244
-          if (type === 'audio' || type === 'video') {
-            mediaElement = document.createElement('div');
-            mediaElement.className = type + '-placeholder';
-          } else {
-            mediaElement = document.createElement(type);
-            mediaElement.src = URL.createObjectURL(attachment.blob);
-            mediaElement.onload = function() {
-              URL.revokeObjectURL(this.src);
-            };
-          }
-          mediaElement.classList.add('mms-media');
-          container.appendChild(mediaElement);
-          attachmentMap.set(mediaElement, attachment);
-        }
+      if (messageData.blob) {
+        var attachment = new Attachment(messageData.blob, {
+          name: messageData.name
+        });
+        var mediaElement = attachment.render();
+        container.appendChild(mediaElement);
+        attachmentMap.set(mediaElement, attachment);
       }
 
-      if (attachment.text) {
+      if (messageData.text) {
         textElement = document.createElement('span');
 
         // escape text for html and look for clickable numbers, etc.
-        var text = Utils.escapeHTML(attachment.text);
+        var text = Utils.escapeHTML(messageData.text);
         text = LinkHelper.searchAndLinkClickableData(text);
 
         textElement.innerHTML = text;
@@ -1208,6 +1188,8 @@ var ThreadUI = global.ThreadUI = {
         elems.bubble = currentNode;
       } else if (currentNode.classList.contains('message')) {
         elems.message = currentNode;
+      } else if (currentNode.classList.contains('pack-end')) {
+        elems.packEnd = currentNode;
       }
       currentNode = currentNode.parentNode;
     }
@@ -1230,9 +1212,9 @@ var ThreadUI = global.ThreadUI = {
       return;
     }
 
-    // Click events originating from within a "bubble" of an error message
+    // Click events originating from a "pack-end" aside of an error message
     // should trigger a prompt for retransmission.
-    if (elems.message.classList.contains('error')) {
+    if (elems.message.classList.contains('error') && elems.packEnd) {
       if (window.confirm(_('resend-confirmation'))) {
         this.resendMessage(elems.message.dataset.messageId);
       }
