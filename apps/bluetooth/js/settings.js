@@ -41,6 +41,18 @@ navigator.mozL10n.once(function bluetoothSettings() {
     req.onerror = function() {
       gBluetoothCheckBox.disabled = false;
     };
+
+    var enabled = this.checked;
+
+    // Hack for toggling xxx
+    var reqAudioFilter =
+      settings.createLock().set({'audio.xxx.enabled': enabled});
+    reqAudioFilter.onsuccess = function audio_setXXXEnabledSuccess() {
+      dump("Successfully set audio.xxx.enabled to " + enabled);
+    };
+    reqAudioFilter.onerror = function audio_setXXXEnabledError() {
+      dump("Failed to write audio.xxx.enabled");
+    };
   };
 
   function initialDefaultAdapter() {
@@ -889,6 +901,18 @@ navigator.mozL10n.once(function bluetoothSettings() {
 
     gDeviceList.update(lastMozSettingValue);
     gMyDeviceInfo.update(lastMozSettingValue);
+  };
+
+  // xxx Hack Read audio.xxx.enabled at startup
+  var reqAudioFilter = settings.createLock().get('audio.xxx.enabled');
+
+  reqAudioFilter.onsuccess = function audio_getXXXEnabledSuccess() {
+    var xxx = req.result['audio.xxx.enabled'];
+    dump("Successfully read audio.xxx.enabled: " + xxx);
+  };
+
+  reqAudioFilter.onerror = function audio_getXXXEnabledError() {
+    dump("Failed to read audio.xxx.enabled");
   };
 
   bluetooth.addEventListener('adapteradded', function() {
